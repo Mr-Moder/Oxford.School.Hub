@@ -9,7 +9,8 @@ import {
   CreditCard,
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Settings
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { title: "Attendance", href: "/attendance", icon: CalendarCheck },
   { title: "Academics", href: "/academics", icon: BookOpen },
   { title: "Fees", href: "/fees", icon: CreditCard },
+  { title: "Security", href: "/settings", icon: Settings },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

@@ -65,4 +65,38 @@ export function initializeStorage() {
   if (!localStorage.getItem("school_teachers")) {
     saveTeachers(INITIAL_TEACHERS);
   }
+  if (!localStorage.getItem("school_password")) {
+    localStorage.setItem("school_password", "admin123");
+  }
+}
+
+export function getPassword(): string {
+  return localStorage.getItem("school_password") || "admin123";
+}
+
+export function savePassword(newPassword: string) {
+  localStorage.setItem("school_password", newPassword);
+}
+
+export function getLoginAttempts(): number {
+  return parseInt(localStorage.getItem("school_login_attempts") || "0", 10);
+}
+
+export function getLockoutUntil(): number {
+  return parseInt(localStorage.getItem("school_lockout_until") || "0", 10);
+}
+
+export function recordFailedAttempt() {
+  const attempts = getLoginAttempts() + 1;
+  localStorage.setItem("school_login_attempts", String(attempts));
+  if (attempts >= 5) {
+    const lockoutUntil = Date.now() + 15 * 60 * 1000;
+    localStorage.setItem("school_lockout_until", String(lockoutUntil));
+    localStorage.setItem("school_login_attempts", "0");
+  }
+}
+
+export function resetLoginAttempts() {
+  localStorage.removeItem("school_login_attempts");
+  localStorage.removeItem("school_lockout_until");
 }

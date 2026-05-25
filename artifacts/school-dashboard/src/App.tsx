@@ -17,6 +17,7 @@ import TeacherForm from "@/pages/teacher-form";
 import Attendance from "@/pages/attendance";
 import Academics from "@/pages/academics";
 import Fees from "@/pages/fees";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/attendance"><ProtectedRoute component={Attendance} /></Route>
       <Route path="/academics"><ProtectedRoute component={Academics} /></Route>
       <Route path="/fees"><ProtectedRoute component={Fees} /></Route>
+      <Route path="/settings"><ProtectedRoute component={Settings} /></Route>
       <Route path="/"><RedirectToDashboard /></Route>
       <Route component={NotFound} />
     </Switch>
