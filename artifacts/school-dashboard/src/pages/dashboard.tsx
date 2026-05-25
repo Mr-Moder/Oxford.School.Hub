@@ -96,32 +96,34 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Fee Status Distribution</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={feeData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {feeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute flex flex-col gap-2 mt-32">
+          <CardContent className="flex flex-col items-center gap-4">
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={feeData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={85}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {feeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center gap-6">
               {feeData.map((entry, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm text-muted-foreground">{entry.name} ({entry.value})</span>
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                  <span className="text-sm text-muted-foreground">{entry.name} <span className="font-semibold text-foreground">({entry.value})</span></span>
                 </div>
               ))}
             </div>
