@@ -16,6 +16,8 @@ import Teachers from "@/pages/teachers";
 import TeacherForm from "@/pages/teacher-form";
 import Attendance from "@/pages/attendance";
 import Academics from "@/pages/academics";
+import Exams from "@/pages/exams";
+import Progress from "@/pages/progress";
 import Fees from "@/pages/fees";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -43,11 +45,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function RedirectToDashboard() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    if (localStorage.getItem("school_auth") === "true") {
-      setLocation("/dashboard");
-    } else {
-      setLocation("/login");
-    }
+    setLocation(localStorage.getItem("school_auth") === "true" ? "/dashboard" : "/login");
   }, [setLocation]);
   return null;
 }
@@ -65,6 +63,8 @@ function Router() {
       <Route path="/teachers/:id"><ProtectedRoute component={TeacherForm} /></Route>
       <Route path="/attendance"><ProtectedRoute component={Attendance} /></Route>
       <Route path="/academics"><ProtectedRoute component={Academics} /></Route>
+      <Route path="/exams"><ProtectedRoute component={Exams} /></Route>
+      <Route path="/progress"><ProtectedRoute component={Progress} /></Route>
       <Route path="/fees"><ProtectedRoute component={Fees} /></Route>
       <Route path="/settings"><ProtectedRoute component={Settings} /></Route>
       <Route path="/"><RedirectToDashboard /></Route>
