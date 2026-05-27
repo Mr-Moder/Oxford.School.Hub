@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getStudents, getExamResults, saveExamResults, getPassingPercentage, savePassingPercentage, getGrade, CLASSES, SUBJECTS, EXAM_TYPES, ExamResult } from "@/lib/storage";
+import { SearchableCombobox, ComboboxOption } from "@/components/searchable-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,7 +31,18 @@ export default function Academics() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const students = getStudents();
-  const classStudents = students.filter(s => s.class === selClass);
+
+  // Searchable options
+  const classOptions: ComboboxOption[] = CLASSES.map(c => ({ label: c, value: c }));
+  const subjectOptions: ComboboxOption[] = SUBJECTS.map(s => ({ label: s, value: s }));
+  const examTypeOptions: ComboboxOption[] = EXAM_TYPES.map(e => ({ label: e.label, value: e.value }));
+
+  // Student options: filter by class if selected, searchable by name OR roll number
+  const classStudents = selClass ? students.filter(s => s.class === selClass) : students;
+  const studentOptions: ComboboxOption[] = classStudents.map(s => ({
+    label: `${s.name} — Roll ${s.rollNumber} (${s.class})`,
+    value: s.id,
+  }));
 
   useEffect(() => {
     setResults(getExamResults());
@@ -38,6 +50,12 @@ export default function Academics() {
     setPassingPct(pct);
     setPassingInput(String(pct));
   }, []);
+
+  // When class changes, clear student
+  const handleClassChange = (v: string) => {
+    setSelClass(v);
+    setSelStudent("");
+  };
 
   const percentage = totalMarks && obtainedMarks
     ? Math.round((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100)
@@ -94,10 +112,7 @@ export default function Academics() {
 
   const handleEdit = (r: ExamResult) => {
     const student = students.find(s => s.id === r.studentId);
-    if (student) {
-      setSelClass(student.class);
-      setSelStudent(r.studentId);
-    }
+    if (student) { setSelClass(student.class); setSelStudent(r.studentId); }
     setSelSubject(r.subject);
     setSelExamType(r.examType);
     setExamTitle(r.examTitle);
@@ -135,22 +150,13 @@ export default function Academics() {
             <Settings2 className="h-4 w-4 text-primary" />
             <CardTitle className="text-base">Passing Percentage Setting</CardTitle>
           </div>
-          <CardDescription>Set the minimum percentage required to pass an exam.</CardDescription>
+          <CardDescription>Minimum percentage required to pass. Currently: <strong>{passingPct}%</strong></CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3 max-w-xs">
-            <Input
-              type="number"
-              min="1"
-              max="99"
-              value={passingInput}
-              onChange={e => setPassingInput(e.target.value)}
-              className="w-24"
-              data-testid="input-passing-pct"
-            />
+            <Input type="number" min="1" max="99" value={passingInput} onChange={e => setPassingInput(e.target.value)} className="w-24" />
             <span className="text-sm text-muted-foreground">%</span>
             <Button size="sm" onClick={savePassingPct}>Save</Button>
-            <span className="text-sm text-muted-foreground">Currently: <strong>{passingPct}%</strong></span>
           </div>
         </CardContent>
       </Card>
@@ -165,107 +171,53 @@ export default function Academics() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Class */}
+
             <div className="space-y-1.5">
-              <Label>Class</Label>
-              <Select value={selClass} onValueChange={v => { setSelClass(v); setSelStudent(""); }}>
-                <SelectTrigger data-testid="select-marks-class">
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Class (optional filter)</Label>
+              <SearchableCombobox options={classOptions} value={selClass} onChange={handleClassChange} placeholder="Filter by class..." />
             </div>
 
-            {/* Student */}
             <div className="space-y-1.5">
-              <Label>Student</Label>
-              <Select value={selStudent} onValueChange={setSelStudent} disabled={!selClass}>
-                <SelectTrigger data-testid="select-marks-student">
-                  <SelectValue placeholder={selClass ? "Select student" : "Select class first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {classStudents.map(s => <SelectItem key={s.id} value={s.id}>{s.name} (Roll {s.rollNumber})</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Student <span className="text-destructive">*</span></Label>
+              <SearchableCombobox
+                options={studentOptions}
+                value={selStudent}
+                onChange={setSelStudent}
+                placeholder="Search by name or roll no..."
+                data-testid="select-marks-student"
+              />
             </div>
 
-            {/* Subject */}
             <div className="space-y-1.5">
-              <Label>Subject</Label>
-              <Select value={selSubject} onValueChange={setSelSubject}>
-                <SelectTrigger data-testid="select-marks-subject">
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Subject <span className="text-destructive">*</span></Label>
+              <SearchableCombobox options={subjectOptions} value={selSubject} onChange={setSelSubject} placeholder="Search subject..." data-testid="select-marks-subject" />
             </div>
 
-            {/* Exam Type */}
             <div className="space-y-1.5">
-              <Label>Exam Type</Label>
-              <Select value={selExamType} onValueChange={setSelExamType}>
-                <SelectTrigger data-testid="select-marks-exam-type">
-                  <SelectValue placeholder="Select exam type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EXAM_TYPES.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Exam Type <span className="text-destructive">*</span></Label>
+              <SearchableCombobox options={examTypeOptions} value={selExamType} onChange={setSelExamType} placeholder="Select exam type..." data-testid="select-marks-exam-type" />
             </div>
 
-            {/* Exam Title */}
             <div className="space-y-1.5">
               <Label>Exam Title <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input
-                placeholder="e.g. Chapter 3 Test"
-                value={examTitle}
-                onChange={e => setExamTitle(e.target.value)}
-                data-testid="input-exam-title"
-              />
+              <Input placeholder="e.g. Chapter 3 Test" value={examTitle} onChange={e => setExamTitle(e.target.value)} />
             </div>
 
-            {/* Date */}
             <div className="space-y-1.5">
               <Label>Exam Date</Label>
-              <Input
-                type="date"
-                value={examDate}
-                onChange={e => setExamDate(e.target.value)}
-                data-testid="input-exam-date"
-              />
+              <Input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} />
             </div>
 
-            {/* Total Marks */}
             <div className="space-y-1.5">
               <Label>Total Marks</Label>
-              <Input
-                type="number"
-                min="1"
-                placeholder="e.g. 100"
-                value={totalMarks}
-                onChange={e => setTotalMarks(e.target.value)}
-                data-testid="input-total-marks"
-              />
+              <Input type="number" min="1" placeholder="e.g. 100" value={totalMarks} onChange={e => setTotalMarks(e.target.value)} />
             </div>
 
-            {/* Obtained Marks */}
             <div className="space-y-1.5">
               <Label>Obtained Marks</Label>
-              <Input
-                type="number"
-                min="0"
-                placeholder="e.g. 75"
-                value={obtainedMarks}
-                onChange={e => setObtainedMarks(e.target.value)}
-                data-testid="input-obtained-marks"
-              />
+              <Input type="number" min="0" placeholder="e.g. 75" value={obtainedMarks} onChange={e => setObtainedMarks(e.target.value)} />
             </div>
 
-            {/* Auto Calc Preview */}
             <div className="space-y-1.5">
               <Label>Result Preview</Label>
               <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/30 text-sm">
@@ -273,8 +225,7 @@ export default function Academics() {
                   <>
                     <span className="font-bold text-lg">{percentage}%</span>
                     <Badge className={`${gradeInfo.color} text-white`}>{gradeInfo.grade}</Badge>
-                    <Badge variant={gradeInfo.pass ? "outline" : "destructive"}
-                           className={gradeInfo.pass ? "border-emerald-500 text-emerald-600" : ""}>
+                    <Badge variant={gradeInfo.pass ? "outline" : "destructive"} className={gradeInfo.pass ? "border-emerald-500 text-emerald-600" : ""}>
                       {gradeInfo.pass ? "Pass" : "Fail"}
                     </Badge>
                   </>
@@ -286,16 +237,9 @@ export default function Academics() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button onClick={handleSubmit} data-testid="button-save-result">
-              {editingId ? "Update Result" : "Save Result"}
-            </Button>
+            <Button onClick={handleSubmit}>{editingId ? "Update Result" : "Save Result"}</Button>
             {editingId && (
-              <Button variant="outline" onClick={() => {
-                setEditingId(null);
-                setObtainedMarks("");
-                setExamTitle("");
-                setSelStudent("");
-              }}>
+              <Button variant="outline" onClick={() => { setEditingId(null); setObtainedMarks(""); setExamTitle(""); setSelStudent(""); }}>
                 Cancel Edit
               </Button>
             )}
@@ -312,93 +256,67 @@ export default function Academics() {
               <CardTitle>All Results ({filtered.length})</CardTitle>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Select value={filterClass} onValueChange={setFilterClass}>
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="All Classes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Classes</SelectItem>
-                  {CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterExamType} onValueChange={setFilterExamType}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All Exams" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Exam Types</SelectItem>
-                  {EXAM_TYPES.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox options={[{ label: "All Classes", value: "all" }, ...classOptions]} value={filterClass} onChange={setFilterClass} placeholder="All Classes" className="w-36" />
+              <SearchableCombobox options={[{ label: "All Exam Types", value: "all" }, ...examTypeOptions]} value={filterExamType} onChange={setFilterExamType} placeholder="All Types" className="w-44" />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Exam</TableHead>
-                <TableHead>Marks</TableHead>
-                <TableHead>%</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
-                    No results yet. Enter marks above to get started.
-                  </TableCell>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Exam</TableHead>
+                  <TableHead>Marks</TableHead>
+                  <TableHead>%</TableHead>
+                  <TableHead>Grade</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filtered.map(r => {
-                  const pct = Math.round((r.obtainedMarks / r.totalMarks) * 100);
-                  const g = getGrade(pct, r.passingPercentage);
-                  return (
-                    <TableRow key={r.id} data-testid={`row-result-${r.id}`}>
-                      <TableCell className="font-medium">{r.studentName}</TableCell>
-                      <TableCell>{r.class}</TableCell>
-                      <TableCell>{r.subject}</TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">{r.examTitle}</span>
-                      </TableCell>
-                      <TableCell>{r.obtainedMarks}/{r.totalMarks}</TableCell>
-                      <TableCell className="font-semibold">{pct}%</TableCell>
-                      <TableCell>
-                        <Badge className={`${g.color} text-white`}>{g.grade}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={g.pass ? "outline" : "destructive"}
-                               className={g.pass ? "border-emerald-500 text-emerald-600" : ""}>
-                          {g.pass ? "Pass" : "Fail"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(r.date + "T12:00:00").toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(r)} data-testid={`button-edit-result-${r.id}`}>
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}
-                            className="text-destructive hover:bg-destructive/10" data-testid={`button-delete-result-${r.id}`}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                      No results yet. Enter marks above to get started.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map(r => {
+                    const pct = Math.round((r.obtainedMarks / r.totalMarks) * 100);
+                    const g = getGrade(pct, r.passingPercentage);
+                    return (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.studentName}</TableCell>
+                        <TableCell>{r.class}</TableCell>
+                        <TableCell>{r.subject}</TableCell>
+                        <TableCell><span className="text-xs text-muted-foreground">{r.examTitle}</span></TableCell>
+                        <TableCell>{r.obtainedMarks}/{r.totalMarks}</TableCell>
+                        <TableCell className="font-semibold">{pct}%</TableCell>
+                        <TableCell><Badge className={`${g.color} text-white`}>{g.grade}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant={g.pass ? "outline" : "destructive"} className={g.pass ? "border-emerald-500 text-emerald-600" : ""}>
+                            {g.pass ? "Pass" : "Fail"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{new Date(r.date + "T12:00:00").toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(r)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)} className="text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

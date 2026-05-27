@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { getExams, saveExams, Exam, CLASSES, SUBJECTS, EXAM_TYPES } from "@/lib/storage";
+import { MultiCheckSelect } from "@/components/multi-check-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,45 +20,39 @@ export default function Exams() {
 
   // Form
   const [title, setTitle] = useState("");
-  const [cls, setCls] = useState("");
-  const [subject, setSubject] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [totalMarks, setTotalMarks] = useState("100");
-  const [passingPct, setPassingPct] = useState("33");
+  const [selClasses, setSelClasses] = useState<string[]>([]);
+  const [selSubjects, setSelSubjects] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState(new Date().toISOString().split("T")[0]);
+  const [dateTill, setDateTill] = useState(new Date().toISOString().split("T")[0]);
+  const [instructions, setInstructions] = useState("");
 
-  useEffect(() => {
-    setExams(getExams());
-  }, []);
+  useEffect(() => { setExams(getExams()); }, []);
 
   const resetForm = () => {
-    setTitle(""); setCls(""); setSubject("");
-    setDate(new Date().toISOString().split("T")[0]);
-    setTotalMarks("100"); setPassingPct("33");
-    setEditingId(null); setShowForm(false);
+    setTitle(""); setSelClasses([]); setSelSubjects([]);
+    setDateFrom(new Date().toISOString().split("T")[0]);
+    setDateTill(new Date().toISOString().split("T")[0]);
+    setInstructions(""); setEditingId(null); setShowForm(false);
   };
 
   const handleSubmit = () => {
-    if (!title || !cls || !subject || !totalMarks) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
+    if (!title || selClasses.length === 0 || selSubjects.length === 0) {
+      toast({ title: "Please fill all required fields", description: "Title, at least one class, and at least one subject are required.", variant: "destructive" });
       return;
     }
     const exam: Exam = {
       id: editingId || Date.now().toString(),
-      title,
-      type: activeType,
-      class: cls,
-      subject,
-      date,
-      totalMarks: parseFloat(totalMarks),
-      passingPercentage: parseFloat(passingPct),
+      title, type: activeType,
+      classes: selClasses, subjects: selSubjects,
+      dateFrom, dateTill, instructions,
     };
     let updated: Exam[];
     if (editingId) {
       updated = exams.map(e => e.id === editingId ? exam : e);
-      toast({ title: "Exam updated" });
+      toast({ title: "Exam updated successfully" });
     } else {
       updated = [exam, ...exams];
-      toast({ title: "Exam created" });
+      toast({ title: "Exam created successfully" });
     }
     setExams(updated);
     saveExams(updated);
@@ -66,11 +61,11 @@ export default function Exams() {
 
   const handleEdit = (exam: Exam) => {
     setTitle(exam.title);
-    setCls(exam.class);
-    setSubject(exam.subject);
-    setDate(exam.date);
-    setTotalMarks(String(exam.totalMarks));
-    setPassingPct(String(exam.passingPercentage));
+    setSelClasses(exam.classes);
+    setSelSubjects(exam.subjects);
+    setDateFrom(exam.dateFrom);
+    setDateTill(exam.dateTill);
+    setInstructions(exam.instructions || "");
     setEditingId(exam.id);
     setActiveType(exam.type);
     setShowForm(true);
@@ -87,14 +82,16 @@ export default function Exams() {
   const activeLabel = EXAM_TYPES.find(e => e.value === activeType)?.label || activeType;
   const filtered = exams.filter(e => e.type === activeType);
 
+  const formatDate = (d: string) => d ? new Date(d + "T12:00:00").toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" }) : "—";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Exams</h1>
-          <p className="text-muted-foreground mt-1">Create and manage all exam schedules.</p>
+          <p className="text-muted-foreground mt-1">Create and manage all exam schedules. Select multiple classes and subjects at once.</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} data-testid="button-new-exam">
+        <Button onClick={() => setShowForm(!showForm)}>
           <Plus className="mr-2 h-4 w-4" />
           {showForm ? "Cancel" : "New Exam"}
         </Button>
@@ -111,9 +108,13 @@ export default function Exams() {
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
             }`}
-            data-testid={`tab-exam-${et.value}`}
           >
             {et.label}
+            {exams.filter(e => e.type === et.value).length > 0 && (
+              <span className={`ml-1.5 text-xs rounded-full px-1.5 py-0.5 ${activeType === et.value ? "bg-white/20" : "bg-primary/10 text-primary"}`}>
+                {exams.filter(e => e.type === et.value).length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -125,46 +126,56 @@ export default function Exams() {
             <CardTitle>{editingId ? "Edit Exam" : `Create ${activeLabel}`}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Title */}
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Exam Title <span className="text-destructive">*</span></Label>
-                <Input placeholder="e.g. Chapter 5 Test" value={title} onChange={e => setTitle(e.target.value)} data-testid="input-exam-title" />
+                <Input placeholder="e.g. Chapter 5 — Monthly Test" value={title} onChange={e => setTitle(e.target.value)} />
               </div>
+
+              {/* Classes multi-select */}
               <div className="space-y-1.5">
-                <Label>Class <span className="text-destructive">*</span></Label>
-                <Select value={cls} onValueChange={setCls}>
-                  <SelectTrigger data-testid="select-exam-class"><SelectValue placeholder="Select class" /></SelectTrigger>
-                  <SelectContent>
-                    {CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Label>Classes <span className="text-destructive">*</span> <span className="text-muted-foreground text-xs">(select multiple)</span></Label>
+                <MultiCheckSelect options={CLASSES} values={selClasses} onChange={setSelClasses} placeholder="Select one or more classes..." />
               </div>
+
+              {/* Subjects multi-select */}
               <div className="space-y-1.5">
-                <Label>Subject <span className="text-destructive">*</span></Label>
-                <Select value={subject} onValueChange={setSubject}>
-                  <SelectTrigger data-testid="select-exam-subject"><SelectValue placeholder="Select subject" /></SelectTrigger>
-                  <SelectContent>
-                    {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Label>Subjects <span className="text-destructive">*</span> <span className="text-muted-foreground text-xs">(select multiple)</span></Label>
+                <MultiCheckSelect options={SUBJECTS} values={selSubjects} onChange={setSelSubjects} placeholder="Select one or more subjects..." />
               </div>
+
+              {/* Date From */}
               <div className="space-y-1.5">
-                <Label>Exam Date</Label>
-                <Input type="date" value={date} onChange={e => setDate(e.target.value)} data-testid="input-exam-date" />
+                <Label>Date From</Label>
+                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
               </div>
+
+              {/* Date Till */}
               <div className="space-y-1.5">
-                <Label>Total Marks <span className="text-destructive">*</span></Label>
-                <Input type="number" min="1" value={totalMarks} onChange={e => setTotalMarks(e.target.value)} data-testid="input-total-marks" />
+                <Label>Date Till</Label>
+                <Input type="date" value={dateTill} onChange={e => setDateTill(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <Label>Passing Percentage (%)</Label>
-                <Input type="number" min="1" max="99" value={passingPct} onChange={e => setPassingPct(e.target.value)} data-testid="input-passing-pct" />
+
+              {/* Instructions */}
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Instructions <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <Textarea placeholder="e.g. Bring calculator. No mobile phones. Syllabus: Ch 1-5." value={instructions} onChange={e => setInstructions(e.target.value)} rows={3} />
               </div>
             </div>
+
+            {/* Preview of selection */}
+            {(selClasses.length > 0 || selSubjects.length > 0) && (
+              <div className="rounded-md bg-primary/5 border border-primary/20 p-3 text-sm space-y-1">
+                <p className="font-medium text-primary">This exam will be created for:</p>
+                {selClasses.length > 0 && <p className="text-muted-foreground">📚 Classes: <span className="text-foreground">{selClasses.join(", ")}</span></p>}
+                {selSubjects.length > 0 && <p className="text-muted-foreground">📖 Subjects: <span className="text-foreground">{selSubjects.join(", ")}</span></p>}
+                <p className="text-muted-foreground">📅 Period: <span className="text-foreground">{formatDate(dateFrom)} → {formatDate(dateTill)}</span></p>
+              </div>
+            )}
+
             <div className="flex gap-3">
-              <Button onClick={handleSubmit} data-testid="button-save-exam">
-                {editingId ? "Update Exam" : "Create Exam"}
-              </Button>
+              <Button onClick={handleSubmit}>{editingId ? "Update Exam" : "Create Exam"}</Button>
               <Button variant="outline" onClick={resetForm}>Cancel</Button>
             </div>
           </CardContent>
@@ -180,54 +191,55 @@ export default function Exams() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Total Marks</TableHead>
-                <TableHead>Passing %</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                    No {activeLabel.toLowerCase()} exams created yet. Click "New Exam" to add one.
-                  </TableCell>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Classes</TableHead>
+                  <TableHead>Subjects</TableHead>
+                  <TableHead>Date From</TableHead>
+                  <TableHead>Date Till</TableHead>
+                  <TableHead>Instructions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filtered.map(exam => (
-                  <TableRow key={exam.id} data-testid={`row-exam-${exam.id}`}>
-                    <TableCell className="font-medium">{exam.title}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{exam.class}</Badge>
-                    </TableCell>
-                    <TableCell>{exam.subject}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(exam.date + "T12:00:00").toLocaleDateString("en-PK", { year: "numeric", month: "short", day: "numeric" })}
-                    </TableCell>
-                    <TableCell>{exam.totalMarks}</TableCell>
-                    <TableCell>{exam.passingPercentage}%</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(exam)} data-testid={`button-edit-exam-${exam.id}`}>
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(exam.id)}
-                          className="text-destructive hover:bg-destructive/10" data-testid={`button-delete-exam-${exam.id}`}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                      No {activeLabel.toLowerCase()} exams yet. Click "New Exam" to create one.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filtered.map(exam => (
+                    <TableRow key={exam.id}>
+                      <TableCell className="font-medium">{exam.title}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {exam.classes.map(c => <Badge key={c} variant="outline" className="text-xs">{c}</Badge>)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {exam.subjects.map(s => <Badge key={s} className="bg-primary/10 text-primary text-xs border-0">{s}</Badge>)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(exam.dateFrom)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(exam.dateTill)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{exam.instructions || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(exam)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(exam.id)} className="text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

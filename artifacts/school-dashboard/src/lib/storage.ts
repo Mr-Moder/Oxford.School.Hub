@@ -42,11 +42,11 @@ export type Exam = {
   id: string;
   title: string;
   type: string;
-  class: string;
-  subject: string;
-  date: string;
-  totalMarks: number;
-  passingPercentage: number;
+  classes: string[];
+  subjects: string[];
+  dateFrom: string;
+  dateTill: string;
+  instructions: string;
 };
 
 export const CLASSES = [
@@ -57,7 +57,7 @@ export const CLASSES = [
 export const SUBJECTS = [
   "Urdu", "English", "Mathematics", "Science", "Islamiat",
   "Social Studies", "Computer", "Physics", "Chemistry", "Biology",
-  "Pakistan Studies", "General Knowledge"
+  "Pakistan Studies", "General Knowledge", "Tarjma-tul-Quran"
 ];
 
 export const EXAM_TYPES = [
@@ -104,7 +104,7 @@ export function saveTeachers(teachers: Teacher[]) {
   localStorage.setItem("school_teachers", JSON.stringify(teachers));
 }
 
-// Exam Results (Academics)
+// Exam Results
 export function getExamResults(): ExamResult[] {
   const data = localStorage.getItem("school_exam_results");
   return data ? JSON.parse(data) : [];
@@ -113,10 +113,21 @@ export function saveExamResults(results: ExamResult[]) {
   localStorage.setItem("school_exam_results", JSON.stringify(results));
 }
 
-// Exams (predefined)
+// Exams (predefined) - with migration from old format
 export function getExams(): Exam[] {
   const data = localStorage.getItem("school_exams");
-  return data ? JSON.parse(data) : [];
+  if (!data) return [];
+  const raw = JSON.parse(data) as any[];
+  return raw.map(e => ({
+    id: e.id,
+    title: e.title,
+    type: e.type,
+    classes: e.classes || (e.class ? [e.class] : []),
+    subjects: e.subjects || (e.subject ? [e.subject] : []),
+    dateFrom: e.dateFrom || e.date || "",
+    dateTill: e.dateTill || e.date || "",
+    instructions: e.instructions || "",
+  }));
 }
 export function saveExams(exams: Exam[]) {
   localStorage.setItem("school_exams", JSON.stringify(exams));
@@ -126,14 +137,14 @@ export function saveExams(exams: Exam[]) {
 export function getPassword(): string {
   return localStorage.getItem("school_password") || "admin123";
 }
-export function savePassword(newPassword: string) {
-  localStorage.setItem("school_password", newPassword);
+export function savePassword(p: string) {
+  localStorage.setItem("school_password", p);
 }
 export function getUsername(): string {
   return localStorage.getItem("school_username") || "admin";
 }
-export function saveUsername(newUsername: string) {
-  localStorage.setItem("school_username", newUsername);
+export function saveUsername(u: string) {
+  localStorage.setItem("school_username", u);
 }
 
 // Passing percentage
@@ -155,8 +166,7 @@ export function recordFailedAttempt() {
   const attempts = getLoginAttempts() + 1;
   localStorage.setItem("school_login_attempts", String(attempts));
   if (attempts >= 5) {
-    const lockoutUntil = Date.now() + 15 * 60 * 1000;
-    localStorage.setItem("school_lockout_until", String(lockoutUntil));
+    localStorage.setItem("school_lockout_until", String(Date.now() + 15 * 60 * 1000));
     localStorage.setItem("school_login_attempts", "0");
   }
 }
