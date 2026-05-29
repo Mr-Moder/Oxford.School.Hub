@@ -57,7 +57,7 @@ export const CLASSES = [
 export const SUBJECTS = [
   "Urdu", "English", "Mathematics", "Science", "Islamiat",
   "Social Studies", "Computer", "Physics", "Chemistry", "Biology",
-  "Pakistan Studies", "General Knowledge", "Tarjma-tul-Quran"
+  "Pakistan Studies", "General Knowledge", "Tarjma-tul-Quran", "Economics"
 ];
 
 export const EXAM_TYPES = [
@@ -93,6 +93,17 @@ export function getStudents(): Student[] {
 }
 export function saveStudents(students: Student[]) {
   localStorage.setItem("school_students", JSON.stringify(students));
+}
+
+// Cascade delete: removes student + all their exam results
+export function deleteStudentCompletely(studentId: string): { examResultsRemoved: number } {
+  const students = getStudents().filter(s => s.id !== studentId);
+  saveStudents(students);
+  const allResults = getExamResults();
+  const remaining = allResults.filter(r => r.studentId !== studentId);
+  const examResultsRemoved = allResults.length - remaining.length;
+  saveExamResults(remaining);
+  return { examResultsRemoved };
 }
 
 // Teachers
