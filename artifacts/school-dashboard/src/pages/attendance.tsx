@@ -104,7 +104,7 @@ export default function Attendance() {
         attendanceRecord: {
           ...s.attendanceRecord,
           [selectedDate]: current === "present" ? "absent" : "present",
-        },
+        } as Record<string, "present" | "absent">,
       };
     });
     setStudents(updated);
@@ -114,7 +114,13 @@ export default function Attendance() {
   const markAll = (status: "present" | "absent") => {
     const updated = students.map(s => {
       if (s.class !== classFilter) return s;
-      return { ...s, attendanceRecord: { ...s.attendanceRecord, [selectedDate]: status } };
+      return {
+        ...s,
+        attendanceRecord: {
+          ...s.attendanceRecord,
+          [selectedDate]: status,
+        } as Record<string, "present" | "absent">,
+      };
     });
     setStudents(updated);
     saveStudents(updated);
