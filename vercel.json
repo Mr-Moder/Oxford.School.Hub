@@ -1,13 +1,8 @@
 {
-  "installCommand": "npm install -g pnpm && pnpm install",
-  "buildCommand": "pnpm --filter @workspace/school-dashboard run build",
-  "outputDirectory": "artifacts/school-dashboard/dist/public",
+  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile",
+  "buildCommand": "bash vercel-build.sh",
+  "outputDirectory": "dist",
   "framework": null,
-  "env": {
-    "BASE_PATH": "/",
-    "PORT": "3000",
-    "NODE_ENV": "production"
-  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
