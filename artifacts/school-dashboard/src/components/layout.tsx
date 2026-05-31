@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Users,
@@ -13,12 +13,14 @@ import {
   Settings,
   ClipboardList,
   TrendingUp,
-  Menu
+  Menu,
+  Megaphone,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { getAnnouncements } from "@/lib/storage";
 
 const NAV_ITEMS = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -29,10 +31,19 @@ const NAV_ITEMS = [
   { title: "Exams", href: "/exams", icon: ClipboardList },
   { title: "Progress", href: "/progress", icon: TrendingUp },
   { title: "Fees", href: "/fees", icon: CreditCard },
+  { title: "Announcements", href: "/announcements", icon: Megaphone },
   { title: "Security", href: "/settings", icon: Settings },
 ];
 
-function NavLink({ item, location }: { item: typeof NAV_ITEMS[0]; location: string }) {
+function NavLink({
+  item,
+  location,
+  badge,
+}: {
+  item: typeof NAV_ITEMS[0];
+  location: string;
+  badge?: number;
+}) {
   const Icon = item.icon;
   const isActive = location === item.href || location.startsWith(`${item.href}/`);
   return (
@@ -43,7 +54,12 @@ function NavLink({ item, location }: { item: typeof NAV_ITEMS[0]; location: stri
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
       }`}>
         <Icon className="h-4 w-4 shrink-0" />
-        {item.title}
+        <span className="flex-1">{item.title}</span>
+        {badge != null && badge > 0 && (
+          <span className="ml-auto text-[10px] font-bold leading-none bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+            {badge}
+          </span>
+        )}
       </div>
     </Link>
   );
@@ -52,6 +68,14 @@ function NavLink({ item, location }: { item: typeof NAV_ITEMS[0]; location: stri
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { theme, setTheme } = useTheme();
+  const [announcementCount, setAnnouncementCount] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setAnnouncementCount(getAnnouncements().length);
+    refresh();
+    const id = setInterval(refresh, 60_000);
+    return () => clearInterval(id);
+  }, [location]); // re-check when navigating
 
   const handleLogout = () => {
     localStorage.removeItem("school_auth");
@@ -86,7 +110,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
               <ScrollArea className="flex-1 px-3 py-4">
                 <div className="flex flex-col gap-0.5">
-                  {NAV_ITEMS.map(item => <NavLink key={item.href} item={item} location={location} />)}
+                  {NAV_ITEMS.map(item => (
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      location={location}
+                      badge={item.href === "/announcements" ? announcementCount : undefined}
+                    />
+                  ))}
                 </div>
               </ScrollArea>
               <div className="p-4 border-t border-sidebar-border/50">
@@ -115,7 +146,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <ScrollArea className="flex-1 px-3 py-4">
           <div className="flex flex-col gap-0.5">
-            {NAV_ITEMS.map(item => <NavLink key={item.href} item={item} location={location} />)}
+            {NAV_ITEMS.map(item => (
+              <NavLink
+                key={item.href}
+                item={item}
+                location={location}
+                badge={item.href === "/announcements" ? announcementCount : undefined}
+              />
+            ))}
           </div>
         </ScrollArea>
         <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-1">

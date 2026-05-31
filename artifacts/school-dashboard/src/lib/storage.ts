@@ -196,6 +196,65 @@ export function getGrade(pct: number, passingPct: number): { grade: string; labe
   return { grade: "F", label: "Fail", color: "bg-red-500", pass: false };
 }
 
+// ─── Announcements ─────────────────────────────────────────────────────────
+
+export type Announcement = {
+  id: string;
+  title: string;
+  message: string;
+  image?: string;      // base64 data-url
+  createdAt: number;   // Unix ms
+};
+
+export const ANNOUNCEMENT_TTL_MS = 25 * 60 * 60 * 1000; // 25 hours
+export const MAX_ANNOUNCEMENTS = 5;
+
+function purgeExpired(list: Announcement[]): Announcement[] {
+  const now = Date.now();
+  return list.filter(a => now - a.createdAt < ANNOUNCEMENT_TTL_MS);
+}
+
+export function getAnnouncements(): Announcement[] {
+  const data = localStorage.getItem("school_announcements");
+  if (!data) return [];
+  const all: Announcement[] = JSON.parse(data);
+  const valid = purgeExpired(all);
+  if (valid.length !== all.length) {
+    localStorage.setItem("school_announcements", JSON.stringify(valid));
+  }
+  return valid.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export function saveAnnouncements(list: Announcement[]) {
+  localStorage.setItem("school_announcements", JSON.stringify(list));
+}
+
+export function addAnnouncement(
+  data: Pick<Announcement, "title" | "message" | "image">
+): { ok: boolean; error?: string } {
+  const existing = getAnnouncements();
+  if (existing.length >= MAX_ANNOUNCEMENTS) {
+    return { ok: false, error: `Maximum ${MAX_ANNOUNCEMENTS} announcements allowed. Delete one first.` };
+  }
+  const newA: Announcement = { ...data, id: Date.now().toString(), createdAt: Date.now() };
+  saveAnnouncements([newA, ...existing]);
+  return { ok: true };
+}
+
+export function updateAnnouncement(
+  id: string,
+  updates: Partial<Pick<Announcement, "title" | "message" | "image">>
+) {
+  const list = getAnnouncements();
+  saveAnnouncements(list.map(a => (a.id === id ? { ...a, ...updates } : a)));
+}
+
+export function deleteAnnouncement(id: string) {
+  saveAnnouncements(getAnnouncements().filter(a => a.id !== id));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function initializeStorage() {
   if (!localStorage.getItem("school_students")) saveStudents(INITIAL_STUDENTS);
   if (!localStorage.getItem("school_teachers")) saveTeachers(INITIAL_TEACHERS);

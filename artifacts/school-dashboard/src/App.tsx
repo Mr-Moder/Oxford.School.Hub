@@ -20,6 +20,7 @@ import Exams from "@/pages/exams";
 import Progress from "@/pages/progress";
 import Fees from "@/pages/fees";
 import Settings from "@/pages/settings";
+import Announcements from "@/pages/announcements";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/progress"><ProtectedRoute component={Progress} /></Route>
       <Route path="/fees"><ProtectedRoute component={Fees} /></Route>
       <Route path="/settings"><ProtectedRoute component={Settings} /></Route>
+      <Route path="/announcements"><ProtectedRoute component={Announcements} /></Route>
       <Route path="/"><RedirectToDashboard /></Route>
       <Route component={NotFound} />
     </Switch>
