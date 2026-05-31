@@ -1,6 +1,6 @@
 {
   "installCommand": "corepack enable && pnpm install --no-frozen-lockfile",
-  "buildCommand": "bash vercel-build.sh",
+  "buildCommand": "bash $(git rev-parse --show-toplevel)/vercel-build.sh",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
