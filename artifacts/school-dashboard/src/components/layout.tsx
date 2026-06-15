@@ -88,7 +88,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="md:hidden flex items-center justify-between px-4 py-3 border-b bg-card shadow-sm">
         <div className="flex items-center gap-2 font-serif font-bold text-lg text-primary">
           <GraduationCap className="h-5 w-5" />
-          Oxford Science
+          Muslim School 
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
@@ -104,8 +104,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="p-5 flex items-center gap-3 font-serif font-bold text-lg border-b border-sidebar-border/50">
                 <GraduationCap className="h-6 w-6 shrink-0" />
                 <div className="leading-tight">
-                  <div>Oxford Science</div>
-                  <div className="text-xs font-sans font-normal opacity-70">Public School & College</div>
+                  <div>Muslim School</div>
+                  <div className="text-xs font-sans font-normal opacity-70">Elemantery School & College</div>
                 </div>
               </div>
               <ScrollArea className="flex-1 px-3 py-4">
@@ -140,8 +140,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-5 flex items-center gap-3 font-serif font-bold text-lg border-b border-sidebar-border/50">
           <GraduationCap className="h-7 w-7 shrink-0" />
           <div className="leading-tight">
-            <div>Oxford Science</div>
-            <div className="text-xs font-sans font-normal opacity-60">Public School & College</div>
+            <div>Muslim School</div>
+            <div className="text-xs font-sans font-normal opacity-60">Elemantery School & College</div>
           </div>
         </div>
         <ScrollArea className="flex-1 px-3 py-4">
