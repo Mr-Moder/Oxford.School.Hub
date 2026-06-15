@@ -80,7 +80,7 @@ export default function Login() {
           <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-2">
             <GraduationCap className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="font-serif text-3xl">Oxford Science</CardTitle>
+          <CardTitle className="font-serif text-3xl">Muslim School</CardTitle>
           <CardDescription>Administration Dashboard — Authorized Access Only</CardDescription>
         </CardHeader>
         <CardContent>
